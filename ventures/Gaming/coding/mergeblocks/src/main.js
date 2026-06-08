@@ -192,7 +192,7 @@ async function init() {
     inputLocked = false;
   };
 
-  const inputHandler = new InputHandler(app, boardRenderer, tileRenderer, scale, LAYOUT, handleTap);
+  const inputHandler = new InputHandler(boardContainer, boardRenderer, tileRenderer, scale, LAYOUT, handleTap);
 
   // ---- 道具使用（有免费次数时） ----
   const useItem = (key) => {

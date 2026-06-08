@@ -1,29 +1,38 @@
 // ============================================================
 // InputHandler — 屏幕坐标 → 设计坐标 → 棋盘局部坐标
+// 事件挂在 boardContainer 上，教程遮罩自然挡住
 // ============================================================
 
 export class InputHandler {
-  constructor(app, boardRenderer, tileRenderer, designScale, layout, onTap) {
-    this.app = app;
+  constructor(boardContainer, boardRenderer, tileRenderer, designScale, layout, onTap) {
+    this.boardContainer = boardContainer;
     this.boardRenderer = boardRenderer;
     this.tileRenderer = tileRenderer;
-    this.designScale = designScale;     // 设计画布到屏幕的缩放比
+    this.designScale = designScale;
     this.layout = layout;
     this.onTap = onTap;
     this._setupEvents();
   }
 
   _setupEvents() {
-    this.app.stage.eventMode = 'static';
-    this.app.stage.hitArea = this.app.screen;
-    this.app.stage.on('pointerdown', (e) => {
-      // 屏幕像素
+    const w = this.boardRenderer.width;
+    const h = this.boardRenderer.height;
+    const self = this;
+
+    this.boardContainer.eventMode = 'static';
+    this.boardContainer.hitArea = {
+      contains(x, y) {
+        const lx = x / self.designScale - self.layout.boardMarginX;
+        const ly = y / self.designScale - self.layout.boardMarginTop;
+        return lx >= 0 && lx <= w && ly >= 0 && ly <= h;
+      }
+    };
+
+    this.boardContainer.on('pointerdown', (e) => {
       const px = e.global.x;
       const py = e.global.y;
-      // 屏幕 → 设计坐标
       const dx = px / this.designScale;
       const dy = py / this.designScale;
-      // 设计坐标 → 棋盘局部
       const lx = dx - this.layout.boardMarginX;
       const ly = dy - this.layout.boardMarginTop;
       const cell = this.boardRenderer.pixelToCell(lx, ly, this.tileRenderer);
@@ -34,6 +43,6 @@ export class InputHandler {
   }
 
   destroy() {
-    this.app.stage.off('pointerdown');
+    this.boardContainer.off('pointerdown');
   }
 }
