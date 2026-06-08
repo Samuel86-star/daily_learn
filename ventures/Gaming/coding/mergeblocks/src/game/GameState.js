@@ -106,6 +106,7 @@ export class GameState {
     if (gs >= 4) this.stats.bigMergeCount4++;
     if (gs >= 6) this.stats.bigMergeCount6++;
     this.stats.totalMerges++;
+    if (this.stats.shuffleUsed) this.stats.mergesAfterShuffle++;
     this.stats.maxCombo = Math.max(this.stats.maxCombo, this.combo.count);
 
     // ---- 补块（含动作记录） ----
