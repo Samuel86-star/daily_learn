@@ -174,7 +174,7 @@ async function init() {
     // 死局结算
     if (timeline.gameOver) {
       sound.gameOver();
-      tutorial.showDeadlockHint?.();
+      if (!gameState._victory) tutorial.showDeadlockHint?.();
       const result = gameState.getResult();
       gameState.collectReward();
       uiManager.update(gameState);
