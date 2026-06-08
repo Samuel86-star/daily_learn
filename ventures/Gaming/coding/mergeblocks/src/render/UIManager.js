@@ -288,6 +288,7 @@ export class UIManager {
     overlay.rect(0, 0, this.designWidth, this.designHeight);
     overlay.fill({ color: 0x000000, alpha: 0.6 });
     overlay.eventMode = 'static';
+    overlay.hitArea = new PIXI.Rectangle(0, 0, this.designWidth, this.designHeight);
     this.container.addChild(overlay);
 
     const cardW = 240;
@@ -636,6 +637,7 @@ export class UIManager {
     overlay.rect(0, 0, this.designWidth, this.designHeight);
     overlay.fill({ color: 0x000000, alpha: 0.7 });
     overlay.eventMode = 'static';
+    overlay.hitArea = new PIXI.Rectangle(0, 0, this.designWidth, this.designHeight);
     this.container.addChild(overlay);
     this._elements.resultOverlay = overlay;
 

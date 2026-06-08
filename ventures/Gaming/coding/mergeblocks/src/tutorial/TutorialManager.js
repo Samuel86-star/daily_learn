@@ -198,6 +198,7 @@ Object.assign(TutorialManager.prototype, {
     const overlay = new PIXI.Graphics();
     overlay.rect(0, 0, this.designWidth, this.designHeight);
     overlay.fill({ color: 0x000000, alpha: 0.55 });
+    overlay.hitArea = new PIXI.Rectangle(0, 0, this.designWidth, this.designHeight);
     overlay.eventMode = 'static';
     overlay.cursor = 'pointer';
     this.container.addChild(overlay);
