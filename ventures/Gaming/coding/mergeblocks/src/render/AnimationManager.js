@@ -1,6 +1,6 @@
 // ============================================================
-// AnimationManager — 合并时间线播放器（Pro Max 版）
-// 阶段：吸附(弧线) → 冲击波+升级闪光 → 错峰下落 → 补块 → 大组爆发
+// AnimationManager — 合并时间线播放器（去掉粒子烟花）
+// 阶段：吸附(弧线) → 冲击波+闪光 → 错峰下落 → 补块
 // ============================================================
 
 import * as PIXI from 'pixi.js';
@@ -48,30 +48,9 @@ export class AnimationManager {
   }
 
   async playMergeTimeline(timeline, tileRenderer, board) {
-    // 阶段 1: 吸附(弧线飞行) 220ms
     await this._phaseAbsorb(timeline, tileRenderer);
-
-    // 阶段 2: 冲击波 + 升级闪光 360ms
     await this._phaseUpgrade(timeline, tileRenderer);
-
-    // 阶段 3+4: 错峰下落 + 补块 ~400ms
     await this._phaseFallAndFill(timeline, tileRenderer, board);
-
-    // 阶段 5: 大组/高 combo 爆发粒子 + 屏幕震动
-    if (timeline.groupSize >= 8 || timeline.comboCount >= 7) {
-      const pos = tileRenderer.getTilePos(timeline.targetRow, timeline.targetCol);
-      const gx = (this.layout.boardMarginX + pos.x) * this.scale;
-      const gy = (this.layout.boardMarginTop + pos.y) * this.scale;
-      this.playBigGroupEffect(gx, gy, Math.max(timeline.groupSize, timeline.comboCount));
-    }
-
-    // 低层 Combo 也有小粒子
-    if (timeline.comboCount >= 5 && timeline.groupSize < 8) {
-      const pos = tileRenderer.getTilePos(timeline.targetRow, timeline.targetCol);
-      const gx = (this.layout.boardMarginX + pos.x) * this.scale;
-      const gy = (this.layout.boardMarginTop + pos.y) * this.scale;
-      this._playSmallComboParticles(gx, gy, timeline.comboCount);
-    }
   }
 
   async _phaseAbsorb(timeline, tileRenderer) {
@@ -91,14 +70,13 @@ export class AnimationManager {
       const perpY = dx / (dist || 1);
       const ctrlX = startX + dx * 0.5 + perpX * curveAmount;
       const ctrlY = startY + dy * 0.5 + perpY * curveAmount;
-
       promises.push(
-        tween(this.app, 220, ease.inOutCubic, (e) => {
+        tween(this.app, 200, ease.inOutCubic, (e) => {
           const mt = 1 - e;
           sprite.x = mt * mt * startX + 2 * mt * e * ctrlX + e * e * targetPos.x;
           sprite.y = mt * mt * startY + 2 * mt * e * ctrlY + e * e * targetPos.y;
           sprite.scale.set(1 - e * 0.5);
-          sprite.alpha = 1 - e * 0.4;
+          sprite.alpha = 1 - e * 0.3;
         })
       );
     }
@@ -106,8 +84,8 @@ export class AnimationManager {
     const targetSprite = tileRenderer.getTileSprite(timeline.upgradedTileId);
     if (targetSprite) {
       promises.push(
-        tween(this.app, 220, ease.outQuad, (e) => {
-          targetSprite.scale.set(1 + Math.sin(e * Math.PI * 3) * 0.04);
+        tween(this.app, 200, ease.outQuad, (e) => {
+          targetSprite.scale.set(1 + Math.sin(e * Math.PI * 2) * 0.03);
         }).then(() => {
           targetSprite.scale.set(1);
         })
@@ -135,6 +113,7 @@ export class AnimationManager {
     const half = size / 2;
     const radius = size * 0.22;
 
+    // 更新 tile 显示
     if (targetSprite._text) {
       targetSprite._text.text = timeline.resultValue.toString();
       const len = timeline.resultValue.toString().length;
@@ -158,44 +137,38 @@ export class AnimationManager {
       targetSprite._highlight.fill({ color: 0xffffff, alpha: 0.25 });
     }
 
-    // 白色闪光
+    // 闪光
     const flash = new PIXI.Graphics();
     flash.roundRect(-half, -half, size, size, radius);
-    flash.fill({ color: 0xffffff, alpha: 0.9 });
-    flash.x = targetSprite.x;
-    flash.y = targetSprite.y;
+    flash.fill({ color: 0xffffff, alpha: 0.7 });
+    flash.x = targetSprite.x; flash.y = targetSprite.y;
     targetSprite.parent.addChild(flash);
 
-    // 冲击波环
-    const shockwave = new PIXI.Graphics();
-    shockwave.x = targetSprite.x;
-    shockwave.y = targetSprite.y;
-    targetSprite.parent.addChild(shockwave);
+    // 轻微冲击波
+    const wave = new PIXI.Graphics();
+    wave.x = targetSprite.x; wave.y = targetSprite.y;
+    targetSprite.parent.addChild(wave);
 
     await Promise.all([
-      tween(this.app, 360, ease.outElastic, (e) => {
-        targetSprite.scale.set(0.6 + e * 0.4);
+      tween(this.app, 320, ease.outElastic, (e) => {
+        targetSprite.scale.set(0.7 + e * 0.3);
       }),
-      tween(this.app, 240, ease.outQuad, (e) => {
-        flash.alpha = 0.9 * (1 - e);
+      tween(this.app, 200, ease.outQuad, (e) => {
+        flash.alpha = 0.7 * (1 - e);
       }),
-      tween(this.app, 360, ease.outCubic, (e) => {
-        shockwave.clear();
-        const r = size * 0.4 + size * 0.8 * e;
-        shockwave.circle(0, 0, r);
-        shockwave.stroke({ color: newPalette.bg, width: 2 * (1 - e), alpha: 0.4 * (1 - e) });
-        shockwave.circle(0, 0, r * 0.85);
-        shockwave.stroke({ color: 0xffffff, width: 1 * (1 - e), alpha: 0.3 * (1 - e) });
+      tween(this.app, 300, ease.outCubic, (e) => {
+        wave.clear();
+        const r = size * 0.4 + size * 0.6 * e;
+        wave.circle(0, 0, r);
+        wave.stroke({ color: newPalette.bg, width: 1.5 * (1 - e), alpha: 0.35 * (1 - e) });
       }),
     ]);
 
-    if (flash.parent) flash.parent.removeChild(flash);
-    flash.destroy();
-    if (shockwave.parent) shockwave.parent.removeChild(shockwave);
-    shockwave.destroy();
+    flash.parent.removeChild(flash); flash.destroy();
+    wave.parent.removeChild(wave); wave.destroy();
     targetSprite.scale.set(1);
 
-    // 飘字 — 分数
+    // 飘字
     if (timeline.finalScore > 0) {
       this._spawnScorePopup(
         { x: targetSprite.x, y: targetSprite.y },
@@ -203,20 +176,9 @@ export class AnimationManager {
         targetSprite.parent
       );
     }
-    // 高级数字到达 512+ 时额外飘字
-    if (timeline.resultValue >= 1024) {
-      setTimeout(() => {
-        this._spawnMilestonePopup(
-          { x: targetSprite.x, y: targetSprite.y - 20 },
-          timeline.resultValue >= 2048 ? '⚡ 传奇合成 ⚡' : `✦ ${timeline.resultValue} ✦`,
-          targetSprite.parent
-        );
-      }, 400);
-    }
-    // Combo 飘字（已移到 UIManager 展示，这里保留简短飘字）
     if (timeline.comboCount >= 2) {
       this._spawnComboPopup(
-        { x: targetSprite.x, y: targetSprite.y - 35 },
+        { x: targetSprite.x, y: targetSprite.y - 30 },
         timeline.comboCount,
         targetSprite.parent
       );
@@ -226,7 +188,6 @@ export class AnimationManager {
   async _phaseFallAndFill(timeline, tileRenderer, board) {
     const movementsByCol = {};
     const newTilesByCol = {};
-
     for (const move of timeline.movements) {
       if (!movementsByCol[move.col]) movementsByCol[move.col] = [];
       movementsByCol[move.col].push(move);
@@ -235,20 +196,16 @@ export class AnimationManager {
       if (!newTilesByCol[nt.col]) newTilesByCol[nt.col] = [];
       newTilesByCol[nt.col].push(nt);
     }
-
     const allCols = new Set([
       ...Object.keys(movementsByCol).map(Number),
       ...Object.keys(newTilesByCol).map(Number),
     ]);
-
     const allPromises = [];
     for (const col of allCols) {
-      const colDelay = col * 20;
+      const colDelay = col * 18;
       allPromises.push(this._fallColumn(col, movementsByCol[col] || [], newTilesByCol[col] || [], colDelay, tileRenderer, board));
     }
-
     await Promise.all(allPromises);
-
     for (const move of timeline.movements) {
       const sprite = tileRenderer.getTileSprite(move.tileId);
       if (!sprite) continue;
@@ -268,33 +225,29 @@ export class AnimationManager {
   async _fallColumn(col, movements, newTiles, startDelayMs, tileRenderer, board) {
     if (startDelayMs > 0) await delay(startDelayMs);
     const promises = [];
-
     for (const move of movements) {
       const sprite = tileRenderer.getTileSprite(move.tileId);
       if (!sprite) continue;
       const startPos = tileRenderer.getTilePos(move.fromRow, move.col);
       const endPos = tileRenderer.getTilePos(move.toRow, move.col);
-      sprite.x = startPos.x;
-      sprite.y = startPos.y;
+      sprite.x = startPos.x; sprite.y = startPos.y;
       const distance = Math.abs(move.toRow - move.fromRow);
-      const duration = 200 + distance * 30;
+      const duration = 180 + distance * 25;
       promises.push(
         tween(this.app, duration, ease.outQuad, (e) => {
           sprite.y = startPos.y + (endPos.y - startPos.y) * e;
         }).then(() =>
-          tween(this.app, 100, ease.outQuad, (e) => {
-            sprite.scale.set(1 + Math.sin(e * Math.PI) * 0.08);
+          tween(this.app, 80, ease.outQuad, (e) => {
+            sprite.scale.set(1 + Math.sin(e * Math.PI) * 0.06);
           })
         )
       );
     }
-
     const sortedNew = newTiles.slice().sort((a, b) => a.row - b.row);
     for (let i = 0; i < sortedNew.length; i++) {
       const nt = sortedNew[i];
       const tile = board.get(nt.row, nt.col);
       if (!tile) continue;
-
       let sprite = tileRenderer.getTileSprite(tile.id);
       if (!sprite) {
         sprite = tileRenderer._createTileSprite();
@@ -302,18 +255,14 @@ export class AnimationManager {
         tileRenderer.container.addChild(sprite);
         tileRenderer._updateTileSprite(sprite, tile);
       }
-
       const endPos = tileRenderer.getTilePos(nt.row, nt.col);
-      const startY = endPos.y - tileRenderer.cellSize * (nt.row + 1) - 60;
-      sprite.x = endPos.x;
-      sprite.y = startY;
-      sprite.alpha = 0;
-      sprite.scale.set(0.7);
-
-      const itemDelay = i * 40;
+      const startY = endPos.y - tileRenderer.cellSize * (nt.row + 1) - 50;
+      sprite.x = endPos.x; sprite.y = startY;
+      sprite.alpha = 0; sprite.scale.set(0.7);
+      const itemDelay = i * 35;
       promises.push(
         delay(itemDelay).then(() =>
-          tween(this.app, 280, ease.outBack, (e) => {
+          tween(this.app, 250, ease.outBack, (e) => {
             sprite.y = startY + (endPos.y - startY) * e;
             sprite.alpha = Math.min(1, e * 2.5);
             sprite.scale.set(0.7 + 0.3 * e);
@@ -321,7 +270,6 @@ export class AnimationManager {
         )
       );
     }
-
     await Promise.all(promises);
   }
 
@@ -329,42 +277,18 @@ export class AnimationManager {
     const t = new PIXI.Text({
       text,
       style: {
-        fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 24,
-        fill: 0xffd54f, stroke: { color: 0x000000, width: 3, alpha: 0.5 },
+        fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 20,
+        fill: 0xffd54f, stroke: { color: 0x000000, width: 2, alpha: 0.4 },
       },
     });
     t.anchor.set(0.5, 0.5);
     t.x = pos.x; t.y = pos.y;
     parent.addChild(t);
-
     const startY = pos.y;
-    tween(this.app, 800, ease.outCubic, (e) => {
-      t.y = startY - 60 * e;
+    tween(this.app, 700, ease.outCubic, (e) => {
+      t.y = startY - 50 * e;
       t.alpha = 1 - Math.max(0, (e - 0.5) * 2);
-      t.scale.set(1 + e * 0.4);
-    }).then(() => {
-      if (t.parent) t.parent.removeChild(t);
-      t.destroy();
-    });
-  }
-
-  _spawnMilestonePopup(pos, text, parent) {
-    const t = new PIXI.Text({
-      text,
-      style: {
-        fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 22,
-        fill: 0xff7043, stroke: { color: 0x000000, width: 3, alpha: 0.5 },
-      },
-    });
-    t.anchor.set(0.5, 0.5);
-    t.x = pos.x; t.y = pos.y;
-    parent.addChild(t);
-
-    const startY = pos.y;
-    tween(this.app, 1200, ease.outCubic, (e) => {
-      t.y = startY - 80 * e;
-      t.alpha = 1 - Math.max(0, (e - 0.4) * 1.67);
-      t.scale.set(0.8 + e * 0.6);
+      t.scale.set(1 + e * 0.3);
     }).then(() => {
       if (t.parent) t.parent.removeChild(t);
       t.destroy();
@@ -373,107 +297,24 @@ export class AnimationManager {
 
   _spawnComboPopup(pos, comboCount, parent) {
     const t = new PIXI.Text({
-      text: `Combo ×${comboCount}`,
+      text: `Combo \u00d7${comboCount}`,
       style: {
-        fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 18,
-        fill: 0x80deea, stroke: { color: 0x000000, width: 2, alpha: 0.5 },
+        fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 16,
+        fill: 0x80deea, stroke: { color: 0x000000, width: 2, alpha: 0.4 },
       },
     });
     t.anchor.set(0.5, 0.5);
     t.x = pos.x; t.y = pos.y;
     parent.addChild(t);
-
     const startY = pos.y;
-    tween(this.app, 900, ease.outCubic, (e) => {
-      t.y = startY - 50 * e;
-      t.alpha = 1 - Math.max(0, (e - 0.6) * 2.5);
-      t.scale.set(1 + e * 0.3);
+    tween(this.app, 800, ease.outCubic, (e) => {
+      t.y = startY - 40 * e;
+      t.alpha = 1 - Math.max(0, (e - 0.5) * 2);
+      t.scale.set(1 + e * 0.25);
     }).then(() => {
       if (t.parent) t.parent.removeChild(t);
       t.destroy();
     });
-  }
-
-  playBigGroupEffect(globalX, globalY, intensity) {
-    if (!this.particleLayer) return;
-    const count = Math.min(intensity * 5, 60);
-    const palette = [0xffd54f, 0xee5a8a, 0xa855f7, 0x4f7df5, 0x26a69a, 0x66bb6a, 0xff7043];
-
-    for (let i = 0; i < count; i++) {
-      const p = new PIXI.Graphics();
-      const r = 2 + Math.random() * 4;
-      const shape = Math.random();
-      if (shape < 0.3) {
-        p.circle(0, 0, r);
-      } else if (shape < 0.6) {
-        p.rect(-r / 2, -r / 2, r, r);
-      } else {
-        p.poly([0, -r, r * 0.866, r * 0.5, -r * 0.866, r * 0.5]);
-      }
-      p.fill({ color: palette[i % palette.length], alpha: 0.95 });
-      p.x = globalX;
-      p.y = globalY;
-      this.particleLayer.addChild(p);
-
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
-      const speed = 100 + Math.random() * 180;
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-      const duration = 700 + Math.random() * 500;
-      const startTime = performance.now();
-      const gravity = 120;
-
-      const anim = () => {
-        const t = Math.min((performance.now() - startTime) / duration, 1);
-        const e = ease.outCubic(t);
-        p.x = globalX + vx * e * 0.5;
-        p.y = globalY + vy * e * 0.5 + gravity * e * e * 0.5;
-        p.alpha = 1 - t;
-        p.scale.set(1 - t * 0.5);
-        p.rotation = t * Math.PI * 2;
-        if (t >= 1) {
-          this.app.ticker.remove(anim);
-          if (p.parent) p.parent.removeChild(p);
-          p.destroy();
-        }
-      };
-      this.app.ticker.add(anim);
-    }
-  }
-
-  _playSmallComboParticles(globalX, globalY, comboCount) {
-    if (!this.particleLayer) return;
-    const count = comboCount * 2;
-    const palette = [0x80deea, 0x4dd0e1, 0x26c6da];
-
-    for (let i = 0; i < count; i++) {
-      const p = new PIXI.Graphics();
-      p.circle(0, 0, 1.5 + Math.random() * 2);
-      p.fill({ color: palette[i % palette.length], alpha: 0.85 });
-      p.x = globalX;
-      p.y = globalY;
-      this.particleLayer.addChild(p);
-
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-      const speed = 60 + Math.random() * 80;
-      const vx = Math.cos(angle) * speed;
-      const vy = Math.sin(angle) * speed;
-      const duration = 400 + Math.random() * 300;
-      const startTime = performance.now();
-
-      const anim = () => {
-        const t = Math.min((performance.now() - startTime) / duration, 1);
-        p.x = globalX + vx * t;
-        p.y = globalY + vy * t;
-        p.alpha = 1 - t;
-        if (t >= 1) {
-          this.app.ticker.remove(anim);
-          if (p.parent) p.parent.removeChild(p);
-          p.destroy();
-        }
-      };
-      this.app.ticker.add(anim);
-    }
   }
 
   playInvalidFeedback(sprite) {
@@ -483,14 +324,9 @@ export class AnimationManager {
     const startTime = performance.now();
     const anim = () => {
       const t = Math.min((performance.now() - startTime) / duration, 1);
-      sprite.x = origX + Math.sin(t * Math.PI * 6) * 4 * (1 - t);
-      if (t >= 1) {
-        sprite.x = origX;
-        this.app.ticker.remove(anim);
-      }
+      sprite.x = origX + Math.sin(t * Math.PI * 6) * 3 * (1 - t);
+      if (t >= 1) { sprite.x = origX; this.app.ticker.remove(anim); }
     };
     this.app.ticker.add(anim);
   }
-
-  destroy() {}
 }
