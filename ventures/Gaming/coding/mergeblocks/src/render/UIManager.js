@@ -574,7 +574,9 @@ export class UIManager {
     for (const nc of newlyCompleted) {
       this._flyCoinReward(nc.index, nc.reward);
     }
+
   }
+
 
   /** 金币从任务卡片飞向右上角 */
   _flyCoinReward(questIndex, amount) {
@@ -624,6 +626,39 @@ export class UIManager {
       else coin.scale.set(1);
     };
     tick();
+  }
+
+  /** 全部任务完成庆祝 */
+  _celebrateAllQuestsDone() {
+    const panelX = 14;
+    const panelY = 94;
+    const panelW = this.designWidth - 28;
+
+    const text = new PIXI.Text({
+      text: '🎉 目标全部达成！',
+      style: {
+        fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 18,
+        fill: 0xffd54f, stroke: { color: 0x000000, width: 2, alpha: 0.4 },
+      },
+    });
+    text.anchor.set(0.5);
+    text.x = this.designWidth / 2;
+    text.y = panelY + 44;
+    text.alpha = 0;
+    text.scale.set(0.5);
+    this.container.addChild(text);
+
+    const start = performance.now();
+    const anim = () => {
+      const t = Math.min((performance.now() - start) / 800, 1);
+      const e = 1 - Math.pow(1 - t, 3);
+      text.alpha = t < 0.7 ? e : 1 - (t - 0.7) * 3.3;
+      text.scale.set(0.5 + 0.7 * e);
+      text.y = panelY + 44 - 30 * t;
+      if (t < 1) requestAnimationFrame(anim);
+      else { this.container.removeChild(text); text.destroy(); }
+    };
+    anim();
   }
 
   // ============= 结算弹窗 =============

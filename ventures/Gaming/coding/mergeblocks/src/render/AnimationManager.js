@@ -58,7 +58,7 @@ export class AnimationManager {
     await this._phaseFallAndFill(timeline, tileRenderer, board);
 
     // 阶段 5: 大组/高 combo 爆发粒子 + 屏幕震动
-    if (timeline.groupSize >= 6 || timeline.comboCount >= 5) {
+    if (timeline.groupSize >= 8 || timeline.comboCount >= 7) {
       const pos = tileRenderer.getTilePos(timeline.targetRow, timeline.targetCol);
       const gx = (this.layout.boardMarginX + pos.x) * this.scale;
       const gy = (this.layout.boardMarginTop + pos.y) * this.scale;
@@ -66,7 +66,7 @@ export class AnimationManager {
     }
 
     // 低层 Combo 也有小粒子
-    if (timeline.comboCount >= 3 && timeline.groupSize < 6) {
+    if (timeline.comboCount >= 5 && timeline.groupSize < 8) {
       const pos = tileRenderer.getTilePos(timeline.targetRow, timeline.targetCol);
       const gx = (this.layout.boardMarginX + pos.x) * this.scale;
       const gy = (this.layout.boardMarginTop + pos.y) * this.scale;
@@ -181,11 +181,11 @@ export class AnimationManager {
       }),
       tween(this.app, 360, ease.outCubic, (e) => {
         shockwave.clear();
-        const r = size * 0.5 + size * 1.3 * e;
+        const r = size * 0.4 + size * 0.8 * e;
         shockwave.circle(0, 0, r);
-        shockwave.stroke({ color: newPalette.bg, width: 4 * (1 - e), alpha: 0.7 * (1 - e) });
+        shockwave.stroke({ color: newPalette.bg, width: 2 * (1 - e), alpha: 0.4 * (1 - e) });
         shockwave.circle(0, 0, r * 0.85);
-        shockwave.stroke({ color: 0xffffff, width: 2 * (1 - e), alpha: 0.5 * (1 - e) });
+        shockwave.stroke({ color: 0xffffff, width: 1 * (1 - e), alpha: 0.3 * (1 - e) });
       }),
     ]);
 
@@ -204,7 +204,7 @@ export class AnimationManager {
       );
     }
     // 高级数字到达 512+ 时额外飘字
-    if (timeline.resultValue >= 512) {
+    if (timeline.resultValue >= 1024) {
       setTimeout(() => {
         this._spawnMilestonePopup(
           { x: targetSprite.x, y: targetSprite.y - 20 },
