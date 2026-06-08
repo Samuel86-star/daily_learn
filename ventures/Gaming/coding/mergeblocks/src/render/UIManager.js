@@ -681,18 +681,23 @@ export class UIManager {
     this.container.addChild(panel);
     this._elements.resultPanel = panel;
 
+    const resultContent = new PIXI.Container();
+    resultContent.x = 0; resultContent.y = 0;
+    this.container.addChild(resultContent);
+    this._elements.resultContent = resultContent;
+
     const startTime = performance.now();
     const enterAnim = () => {
       const t = Math.min((performance.now() - startTime) / 400, 1);
       const e = 1 - Math.pow(1 - t, 3);
       panel.alpha = e; panel.scale.set(0.8 + 0.2 * e);
-      if (t >= 1) { panel.scale.set(1); this._buildResultContent(cx, cy, panelW, panelH, result, onNewGame); return; }
+      if (t >= 1) { panel.scale.set(1); this._buildResultContent(cx, cy, panelW, panelH, result, onNewGame, resultContent); return; }
       requestAnimationFrame(enterAnim);
     };
     enterAnim();
   }
 
-  _buildResultContent(cx, cy, panelW, panelH, result, onNewGame) {
+  _buildResultContent(cx, cy, panelW, panelH, result, onNewGame, rc) {
     let titleText = '本局完成！'; let subtext = '';
     if (result.maxTile >= 2048) { titleText = '🎉 传奇合成！'; subtext = '2048 已达成！'; }
     else if (result.maxTile >= 512) { titleText = '🌟 了不起！'; subtext = '合成 512+！'; }
@@ -703,12 +708,12 @@ export class UIManager {
       text: titleText, style: { fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 28, fill: 0xffd54f, stroke: { color: 0x000000, width: 3, alpha: 0.4 } },
     });
     title.anchor.set(0.5, 0); title.x = cx; title.y = cy - panelH / 2 + 30;
-    this.container.addChild(title);
+    rc.addChild(title);
 
     if (subtext) {
       const sub = new PIXI.Text({ text: subtext, style: { fontFamily: 'Arial, sans-serif', fontSize: 14, fill: 0xb8a4d8 } });
       sub.anchor.set(0.5, 0); sub.x = cx; sub.y = cy - panelH / 2 + 66;
-      this.container.addChild(sub);
+      rc.addChild(sub);
     }
 
     const stats = [
@@ -722,33 +727,33 @@ export class UIManager {
     stats.forEach((s, i) => {
       const label = new PIXI.Text({ text: s.label, style: { fontFamily: 'Arial, sans-serif', fontSize: 13, fill: 0x9d88c8 } });
       label.anchor.set(0.5, 0); label.x = cx; label.y = statsStartY + i * 42;
-      this.container.addChild(label);
+      rc.addChild(label);
       const val = new PIXI.Text({ text: s.value, style: { fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 22, fill: s.color } });
       val.anchor.set(0.5, 0); val.x = cx; val.y = statsStartY + 18 + i * 42;
-      this.container.addChild(val);
+      rc.addChild(val);
     });
 
     const divider = new PIXI.Graphics();
     divider.rect(cx - 100, statsStartY + stats.length * 42 + 10, 200, 1);
     divider.fill({ color: 0x4a2f80, alpha: 0.5 });
-    this.container.addChild(divider);
+    rc.addChild(divider);
 
     const rewardY = statsStartY + stats.length * 42 + 24;
     const coinLabel = new PIXI.Text({ text: '获得金币', style: { fontFamily: 'Arial, sans-serif', fontSize: 13, fill: 0x9d88c8 } });
     coinLabel.anchor.set(0.5, 0); coinLabel.x = cx; coinLabel.y = rewardY;
-    this.container.addChild(coinLabel);
+    rc.addChild(coinLabel);
 
     const coinVal = new PIXI.Text({
       text: `+ ${result.coins || 20} ✦`, style: { fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 24, fill: 0xffd54f },
     });
     coinVal.anchor.set(0.5, 0); coinVal.x = cx; coinVal.y = rewardY + 22;
-    this.container.addChild(coinVal);
+    rc.addChild(coinVal);
 
     const btnW = 200; const btnH = 54; const btnY = cy + panelH / 2 - btnH - 22;
     const btnShadow = new PIXI.Graphics();
     btnShadow.roundRect(cx - btnW / 2 + 2, btnY + 5, btnW, btnH, 16);
     btnShadow.fill({ color: 0x306020, alpha: 0.7 });
-    this.container.addChild(btnShadow);
+    rc.addChild(btnShadow);
 
     const btn = new PIXI.Graphics();
     btn.roundRect(cx - btnW / 2, btnY, btnW, btnH, 16);
@@ -762,13 +767,13 @@ export class UIManager {
     btn.lineTo(cx + btnW / 2, btnY); btn.lineTo(cx - btnW / 2, btnY); btn.closePath();
     btn.fill({ color: 0xffffff, alpha: 0.2 });
     btn.eventMode = 'static'; btn.cursor = 'pointer';
-    this.container.addChild(btn);
+    rc.addChild(btn);
 
     const btnText = new PIXI.Text({
       text: '再来一局', style: { fontFamily: 'Arial Black, sans-serif', fontWeight: '900', fontSize: 20, fill: 0xffffff, stroke: { color: 0x000000, width: 2, alpha: 0.3 } },
     });
     btnText.anchor.set(0.5, 0.5); btnText.x = cx; btnText.y = btnY + btnH / 2;
-    this.container.addChild(btnText);
+    rc.addChild(btnText);
 
     btn.on('pointerdown', () => { btnShadow.y = 2; btn.y = 2; btnText.y = btnY + btnH / 2 + 2; });
     btn.on('pointerup', () => { btnShadow.y = 0; btn.y = 0; btnText.y = btnY + btnH / 2; this._clearResult(() => { if (onNewGame) onNewGame(); }); });
@@ -776,7 +781,7 @@ export class UIManager {
   }
 
   _clearResult(callback) {
-    ['resultOverlay', 'resultPanel'].forEach(k => {
+    ['resultOverlay', 'resultPanel', 'resultContent'].forEach(k => {
       const el = this._elements[k];
       if (el && el.parent) { el.parent.removeChild(el); el.destroy({ children: true }); }
       delete this._elements[k];
