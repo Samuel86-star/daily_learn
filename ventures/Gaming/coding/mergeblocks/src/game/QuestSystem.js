@@ -109,7 +109,9 @@ export class QuestSystem {
         }
       }
     }
-    // 补新任务
+  }
+
+  fillQuests() {
     this._fillQuests();
   }
 

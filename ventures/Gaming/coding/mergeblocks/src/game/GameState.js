@@ -26,6 +26,7 @@ export class GameState {
     this.maxTile = 2;
     this.gameOver = false;
     this.gameStarted = false;
+    this._victory = false;
 
     this.stats = this._freshStats();
 
@@ -43,6 +44,7 @@ export class GameState {
     this.maxTile = 2;
     this.gameOver = false;
     this.gameStarted = true;
+    this._victory = false;
     this.stats = this._freshStats();
 
     this.filler.generateInitial(this.board, getTileWeights);
@@ -211,6 +213,7 @@ export class GameState {
       bigMergeCount6: this.stats.bigMergeCount6,
       totalMerges: this.stats.totalMerges,
       completedQuests: this.quest.getActiveWithStatus().filter(q => q.completed).length,
+      victory: this._victory,
       coins: this.economy.calculateGameReward({ maxTile: this.maxTile, score: this.score }),
     };
   }
@@ -238,6 +241,14 @@ export class GameState {
         if (this.onQuestComplete) this.onQuestComplete(quest);
       },
     });
+    // 3 个任务全完成 → 本局胜利
+    const allActive = this.quest.getActiveWithStatus();
+    if (allActive.length === 3 && allActive.every(q => q.completed)) {
+      this.gameOver = true;
+      this._victory = true;
+    } else {
+      this.quest.fillQuests();
+    }
   }
 
   _notify() { if (this.onStateChange) this.onStateChange(this); }
