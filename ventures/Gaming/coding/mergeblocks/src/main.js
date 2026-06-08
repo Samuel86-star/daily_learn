@@ -193,14 +193,8 @@ async function init() {
 
   const inputHandler = new InputHandler(app, boardRenderer, tileRenderer, scale, LAYOUT, handleTap);
 
-  // ---- 道具按钮 ----
-  uiManager.setOnSoundToggle(() => {
-    toggleMute();
-  });
-  uiManager.setOnItemClick((key) => {
-    if (inputLocked || gameState.gameOver) return;
-    // 静音按钮特殊处理
-
+  // ---- 道具使用（有免费次数时） ----
+  const useItem = (key) => {
     ensureAudio();
     sound.itemUse();
     switch (key) {
@@ -229,6 +223,22 @@ async function init() {
         tileRenderer.renderBoard(gameState.board);
         uiManager.update(gameState);
         break;
+    }
+  };
+
+  uiManager.setOnSoundToggle(() => { toggleMute(); });
+  uiManager.setOnItemClick((key) => {
+    if (inputLocked || gameState.gameOver) return;
+    useItem(key);
+  });
+  uiManager.setOnItemPurchase((key) => {
+    if (inputLocked || gameState.gameOver) return;
+    const ok = gameState.purchaseItem(key);
+    if (ok) {
+      sound.itemUse();
+      useItem(key);
+    } else {
+      sound.invalid();
     }
   });
 
