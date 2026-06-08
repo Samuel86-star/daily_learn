@@ -124,6 +124,7 @@ export class GameState {
     // ---- 任务（捕获新完成的） ----
     const completedBefore = new Set(this.quest.completedIds);
     this._updateQuests();
+    if (this.gameOver) gameOverNow = true;
     const completedQuests = this.quest.getActiveWithStatus()
       .filter(q => q.completed && !completedBefore.has(q.id));
 
@@ -165,6 +166,7 @@ export class GameState {
           this.maxTile = result.maxTile;
           this.gameOver = false;
           this._updateQuests();
+    if (this.gameOver) gameOverNow = true;
           this._notify();
         }
         break;
@@ -175,6 +177,7 @@ export class GameState {
           this.maxTile = this.board.getMaxTileValue();
           this._checkDeadlock();
           this._updateQuests();
+    if (this.gameOver) gameOverNow = true;
           this._notify();
         }
         break;
@@ -185,6 +188,7 @@ export class GameState {
           this.stats.shuffleUsed = true;
           this._checkDeadlock();
           this._updateQuests();
+    if (this.gameOver) gameOverNow = true;
           this._notify();
         }
         break;
