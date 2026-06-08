@@ -18,15 +18,13 @@ import { BOARD_WIDTH, BOARD_HEIGHT, COLORS } from './game/config.js';
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const LAYOUT = {
-  topBarHeight: 110,
-  boardMarginX: 12,
-  boardMarginTop: 180,
-  bottomBarHeight: 200,
+  boardMarginX: 14,
+  boardMarginTop: 196,
 };
 
 async function init() {
   const boardAreaW = DESIGN_WIDTH - LAYOUT.boardMarginX * 2;
-  const gap = 8;
+  const gap = 6;
   const cellSize = Math.floor((boardAreaW - gap * (BOARD_WIDTH + 1)) / BOARD_WIDTH);
   const boardW = BOARD_WIDTH * cellSize + (BOARD_WIDTH + 1) * gap;
   const boardH = BOARD_HEIGHT * cellSize + (BOARD_HEIGHT + 1) * gap;
