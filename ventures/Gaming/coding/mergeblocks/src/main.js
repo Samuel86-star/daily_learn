@@ -109,6 +109,7 @@ async function init() {
 
   // ---- 主输入处理 ----
   const handleTap = async (row, col) => {
+    if (tutorial.isActive) return;
     if (inputLocked || gameState.gameOver) return;
 
     ensureAudio();
